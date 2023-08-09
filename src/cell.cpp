@@ -13,11 +13,7 @@ Cell::Cell(Sheet& sheet)
     : impl_(std::make_unique<EmptyImpl>()), sheet_(sheet) {}
 Cell::~Cell() = default;
 
-void Cell::Set(
-    std::string text, Position pos,
-    Sheet* sheet) {  // тут pos - это позиция ячейки для которой устанавливаем
-                     // значение а text - это устанавливаемое значение, которое
-                     // может быть формулой
+void Cell::Set(std::string text, Position pos, Sheet* sheet) {
   std::unique_ptr<Impl> impl;
   std::forward_list<Position> set_formula_cells;
 
@@ -41,7 +37,6 @@ void Cell::Set(
     throw CircularDependencyException("circular dependency detected");
   }
 
-  // Обновление зависимостей
   auto second_st = this->pos_.ToString();
 
   impl_ = std::move(impl);
@@ -62,12 +57,10 @@ void Cell::Set(
       used = sheet_.GetConcreteCell(pos);
     }
     auto five_st = used->pos_.ToString();
-    // auto six_st = used->GetValue();
     using_cells_.insert(used);
     used->calculated_cells_.insert(this);
   }
 
-  // Инвалидация кеша
   ResetCache(true);
 }
 
@@ -95,11 +88,9 @@ bool Cell::CheckCircularDependencies(const Impl& new_impl, Position pos) {
   std::unordered_set<Cell*> visitedPos;
   for (const auto& position : cells) {
     if (position == pos) {
-      return true; /*CircularDependencyException("circular dependency
-                      detected");*/
+      return true;
     }
     Cell* ref_cell = sheet_.GetConcreteCell(position);
-    // std::set<Cell*> visitedPos;
     visitedPos.insert(ref_cell);
     if (HasCircularDependency(ref_cell, visitedPos, pos_const)) {
       return true;

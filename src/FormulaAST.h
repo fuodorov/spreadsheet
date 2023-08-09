@@ -17,7 +17,6 @@ class ParsingError : public std::runtime_error {
 
 class FormulaAST {
  public:
-  // FormulaAST() = default;  // Конструктор по умолчанию
   explicit FormulaAST(std::unique_ptr<ASTImpl::Expr> root_expr,
                       std::forward_list<Position> cells);
 

@@ -22,7 +22,6 @@ enum ExprPrecedence {
   EP_END,
 };
 
-// a bit is set when the parentheses are needed
 enum PrecedenceRule {
   PR_NONE = 0b00,                // never needed
   PR_LEFT = 0b01,                // needed for a left child
@@ -30,40 +29,6 @@ enum PrecedenceRule {
   PR_BOTH = PR_LEFT | PR_RIGHT,  // needed for both children
 };
 
-// PRECEDENCE_RULES[parent][child] determines if parentheses need
-// to be inserted between a parent and a child of specific precedences;
-// for some nodes rules are different for left and right children:
-// (X c Y) p Z  vs  X p (Y c Z)
-//
-// The interesting cases are the ones where removing the parens would change the
-// AST. It may happen when our precedence rules for parentheses are different
-// from the grammatic precedence of operations.
-//
-// Case analysis:
-// A + (B + C) - always okay (nothing of lower grammatic precedence could have
-// been written to the right)
-//    (e.g. if we had A + (B + C) / D, it wouldn't parse in a way
-//    that woudld have given us A + (B + C) as a subexpression to deal with)
-// A + (B - C) - always okay (nothing of lower grammatic precedence could have
-// been written to the right) A - (B + C) - never okay A - (B - C) - never okay
-// A * (B * C) - always okay (the parent has the highest grammatic precedence) A
-// * (B / C) - always okay (the parent has the highest grammatic precedence) A /
-// (B * C) - never okay A / (B / C) - never okay
-// -(A + B) - never okay
-// -(A - B) - never okay
-// -(A * B) - always okay (the resulting binary op has the highest grammatic
-// precedence)
-// -(A / B) - always okay (the resulting binary op has the highest grammatic
-// precedence)
-// +(A + B) - **sometimes okay** (e.g. parens in +(A + B) / C are **not**
-// optional)
-//     (currently in the table we're always putting in the parentheses)
-// +(A - B) - **sometimes okay** (same)
-//     (currently in the table we're always putting in the parentheses)
-// +(A * B) - always okay (the resulting binary op has the highest grammatic
-// precedence)
-// +(A / B) - always okay (the resulting binary op has the highest grammatic
-// precedence)
 constexpr PrecedenceRule PRECEDENCE_RULES[EP_END][EP_END] = {
     /* EP_ADD */ {PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
     /* EP_SUB */ {PR_RIGHT, PR_RIGHT, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
@@ -183,34 +148,6 @@ class BinaryOpExpr final : public Expr {
       throw FormulaError(FormulaError::Category::Div0);
     }
   }
-  /*
-  double Evaluate(std::function<double(Position)>& args) const override {
-
-      switch (type_) {
-
-          case Add:
-              return lhs_->Evaluate(args) + rhs_->Evaluate(args);
-
-          case Subtract:
-              return lhs_->Evaluate(args) - rhs_->Evaluate(args);
-
-          case Multiply:
-              return lhs_->Evaluate(args) * rhs_->Evaluate(args);
-
-          case Divide:
-
-              if (rhs_->Evaluate(args) != 0) {
-                  return lhs_->Evaluate(args) / rhs_->Evaluate(args);
-
-              } else {
-                  throw FormulaError(FormulaError::Category::Div0);
-              }
-
-          default:
-              throw std::invalid_argument("unidentified operation type");
-      }
-  }
-  */
 
  private:
   Type type_;

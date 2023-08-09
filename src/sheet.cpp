@@ -23,23 +23,6 @@ void Sheet::SetCell(Position pos, std::string text) {
     if (!cells_[pos.row][pos.col]) {
       cells_[pos.row][pos.col] = std::make_unique<Cell>(*this);
     }
-    /*
-    // Проверяю что в text не ячейка типа =B1 то есть не ссылка на ячейку
-    которая еще не создана, в данном случае ячейку нужно создать std::string
-    text_copy = text;
-
-    // проверяю что ячейка на которую ссылаются пустая
-    if (text_copy.size() > 0 && text_copy[0] == FORMULA_SIGN) {
-        text_copy = text_copy.substr(1); // получем названия ячейки без знака
-    "="
-
-        Position pos_link = Position::FromString(text_copy);
-        if (pos_link.IsValid() && !Sheet::GetCell(pos_link)  ) {
-            // ячейки нет - создаем пустую ячейку
-            Sheet::SetCell(pos_link, "");
-        }
-    }
-    */
     cells_[pos.row][pos.col]->Set(std::move(text), pos, this);
 
   } else {
@@ -178,11 +161,6 @@ void Sheet::PrintTexts(std::ostream& output) const {
     output << '\n';
   }
 }
-/*
-const Table& Sheet::GetTable() const {
-    return cells_;
-}
- */
 
 std::unique_ptr<SheetInterface> CreateSheet() {
   return std::make_unique<Sheet>();
