@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "log/easylogging++.h"
+
 namespace TestRunnerPrivate {
 template <typename K, typename V, template <typename, typename> class Map>
 std::ostream& PrintMap(std::ostream& os, const Map<K, V>& m) {
@@ -85,20 +87,20 @@ class TestRunner {
   void RunTest(TestFunc func, const std::string& test_name) {
     try {
       func();
-      std::cerr << test_name << " OK" << std::endl;
+      LOG(INFO) << test_name << " OK";
     } catch (std::exception& e) {
       ++fail_count;
-      std::cerr << test_name << " fail: " << e.what() << std::endl;
+      LOG(ERROR) << test_name << " fail: " << e.what();
     } catch (...) {
       ++fail_count;
-      std::cerr << "Unknown exception caught" << std::endl;
+      LOG(ERROR) << "Unknown exception caught";
     }
   }
 
   ~TestRunner() {
     std::cerr.flush();
     if (fail_count > 0) {
-      std::cerr << fail_count << " unit tests failed. Terminate" << std::endl;
+      LOG(ERROR) << fail_count << " unit tests failed. Terminate";
       exit(1);
     }
   }

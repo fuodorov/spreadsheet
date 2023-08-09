@@ -38,10 +38,13 @@ file(GLOB sources
         *.h
         )
 
+set(LOG log/easylogging++.h log/easylogging++.cc)
+
 add_executable(
         spreadsheet
         ${ANTLR_FormulaParser_CXX_OUTPUTS}
         ${sources}
+        ${LOG}
 )
 
 target_link_libraries(spreadsheet antlr4_static)
