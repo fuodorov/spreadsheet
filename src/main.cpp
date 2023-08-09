@@ -2,8 +2,8 @@
 
 #include "common.h"
 #include "formula.h"
-#include "test_runner_p.h"
 #include "log/easylogging++.h"
+#include "test_runner_p.h"
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -355,7 +355,7 @@ void TestCellCircularReferences() {
 }  // namespace
 
 int main() {
-    LOG(INFO) << "Start testing";
+  LOG(INFO) << "Start testing";
   TestRunner tr;
   RUN_TEST(tr, TestPositionAndStringConversion);
   RUN_TEST(tr, TestPositionToStringInvalid);
@@ -376,6 +376,6 @@ int main() {
   RUN_TEST(tr, TestCellReferences);
   RUN_TEST(tr, TestFormulaIncorrect);
   RUN_TEST(tr, TestCellCircularReferences);
-    LOG(INFO) << "Finish testing";
+  LOG(INFO) << "Finish testing";
   return 0;
 }
