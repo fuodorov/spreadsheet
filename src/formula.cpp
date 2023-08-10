@@ -3,87 +3,86 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <regex>
 #include <sstream>
 
 #include "FormulaAST.h"
 
 using namespace std::literals;
 
-std::ostream& operator<<(std::ostream& output, FormulaError fe) {
-  return output << "#DIV/0!";
+std::ostream& operator<<(std::ostream& output, FormulaError formula_error) {
+  return output << formula_error.ToString();
 }
 
 namespace {
 class Formula : public FormulaInterface {
  public:
   explicit Formula(std::string expression) try
-      : ast_(ParseFormulaAST(expression)) {
+      : formula_ast_(ParseFormulaAST(expression)) {
   } catch (...) {
-    throw FormulaException("formula is syntactically incorrect");
+    throw FormulaException("Failed to parse formula"s);
   }
 
   Value Evaluate(const SheetInterface& sheet) const {
     try {
-      std::function<double(Position)> params =
-          [&sheet](const Position pos) -> double {
-        if (!pos.IsValid()) {
+      std::function<double(Position)> func =
+          [&sheet](const Position position) -> double {
+        if (!position.IsValid()) {
           throw FormulaError(FormulaError::Category::Ref);
         }
 
-        const auto* cell = sheet.GetCell(pos);
+        const auto* cell = sheet.GetCell(position);
         if (!cell) {
           return 0.0;
         }
 
-        const auto& cellValue = cell->GetValue();
-        if (std::holds_alternative<double>(cellValue)) {
-          return std::get<double>(cellValue);
+        const auto& value = cell->GetValue();
+        if (std::holds_alternative<double>(value)) {
+          return std::get<double>(value);
         }
 
-        if (std::holds_alternative<std::string>(cellValue)) {
-          const auto& strValue = std::get<std::string>(cellValue);
-          if (strValue.empty()) {
-            return 0.0;
-          }
-
-          std::istringstream input(strValue);
-          double digit = 0.0;
-          if (input >> digit && input.eof()) {
-            return digit;
+        if (std::holds_alternative<std::string>(value)) {
+          const auto& string_value = std::get<std::string>(value);
+          std::regex regex_double(R"(^\s*([-+]?\d+(?:\.\d+)?)\s*$)");
+          std::smatch match;
+          if (std::regex_match(string_value, match, regex_double)) {
+            return std::stod(match[1]);
           }
 
           throw FormulaError(FormulaError::Category::Value);
         }
 
-        throw FormulaError(std::get<FormulaError>(cellValue));
+        throw FormulaError(std::get<FormulaError>(value));
       };
 
-      return ast_.Execute(params);
-    } catch (const FormulaError& evaluate_error) {
-      return evaluate_error;
+      return formula_ast_.Execute(func);
+    } catch (const FormulaError& formula_error) {
+      return formula_error;
     }
   }
 
   std::string GetExpression() const override {
     std::ostringstream out;
-    ast_.PrintFormula(out);
+    formula_ast_.PrintFormula(out);
     return out.str();
   }
 
   std::vector<Position> GetReferencedCells() const override {
-    std::set<Position> cells;
-    for (const auto& cell : ast_.GetCells()) {
+    std::vector<Position> cell_positions;
+    for (const auto& cell : formula_ast_.GetCells()) {
       if (cell.IsValid()) {
-        cells.insert(cell);
-      } else {
-        continue;
+        cell_positions.push_back(cell);
       }
     }
-    return std::vector<Position>(cells.cbegin(), cells.cend());
+    std::sort(cell_positions.begin(), cell_positions.end());
+    cell_positions.erase(
+        std::unique(cell_positions.begin(), cell_positions.end()),
+        cell_positions.end());
+    return cell_positions;
   }
 
  private:
-  FormulaAST ast_;
+  FormulaAST formula_ast_;
 };
 
 }  // end namespace
