@@ -12,111 +12,95 @@ using namespace std::literals;
 
 Sheet::~Sheet() {}
 
-void Sheet::SetCell(Position pos, std::string text) {
-  if (pos.IsValid()) {
-    auto sheet_pos = pos.ToString();
+void Sheet::SetCell(Position position, std::string text) {
+  if (!position.IsValid()) {
+    throw InvalidPositionException("Position is not valid.");
+  }
 
-    cells_.resize(std::max(pos.row + 1, int(std::size(cells_))));
-    cells_[pos.row].resize(
-        std::max(pos.col + 1, int(std::size(cells_[pos.row]))));
+  if (position.row >= int(std::size(spreadsheet_))) {
+    spreadsheet_.resize(position.row + 1);
+  }
 
-    if (!cells_[pos.row][pos.col]) {
-      cells_[pos.row][pos.col] = std::make_unique<Cell>(*this);
-    }
-    cells_[pos.row][pos.col]->Set(std::move(text), pos, this);
+  if (position.col >= int(std::size(spreadsheet_[position.row]))) {
+    spreadsheet_[position.row].resize(position.col + 1);
+  }
 
+  if (!spreadsheet_[position.row][position.col]) {
+    spreadsheet_[position.row][position.col] = std::make_unique<Cell>(*this);
+  }
+
+  spreadsheet_[position.row][position.col]->Set(std::move(text), position,
+                                                this);
+}
+
+CellInterface* Sheet::GetCell(Position position) {
+  if (!position.IsValid()) {
+    throw InvalidPositionException("Position is not valid.");
+  }
+
+  return position.row < int(std::size(spreadsheet_)) &&
+                 position.col < int(std::size(spreadsheet_[position.row]))
+             ? spreadsheet_[position.row][position.col].get()
+             : nullptr;
+}
+
+const CellInterface* Sheet::GetCell(Position position) const {
+  if (!position.IsValid()) {
+    throw InvalidPositionException("Position is not valid.");
+  }
+
+  if (position.row < int(std::size(spreadsheet_)) &&
+      position.col < int(std::size(spreadsheet_[position.row]))) {
+    return spreadsheet_[position.row][position.col].get()->GetText() == ""
+               ? nullptr
+               : spreadsheet_[position.row][position.col].get();
   } else {
-    throw InvalidPositionException("invalid cell position. setsell");
+    return nullptr;
   }
 }
 
-CellInterface* Sheet::GetCell(Position pos) {
-  if (pos.IsValid()) {
-    if (pos.row < int(std::size(cells_)) &&
-        pos.col < int(std::size(cells_[pos.row]))) {
-      return cells_[pos.row][pos.col].get();
-    } else {
-      return nullptr;
-    }
-
-  } else {
-    throw InvalidPositionException("invalid cell position. getcell");
+Cell* Sheet::GetConcreteCell(Position position) {
+  if (!position.IsValid()) {
+    throw InvalidPositionException("Position is not valid.");
   }
+
+  return position.row < int(std::size(spreadsheet_)) &&
+                 position.col < int(std::size(spreadsheet_[position.row]))
+             ? spreadsheet_[position.row][position.col].get()
+             : nullptr;
 }
 
-const CellInterface* Sheet::GetCell(Position pos) const {
-  if (pos.IsValid()) {
-    if (pos.row < int(std::size(cells_)) &&
-        pos.col < int(std::size(cells_[pos.row]))) {
-      if (cells_[pos.row][pos.col].get() == nullptr) {
-        return nullptr;
-      } else if (cells_[pos.row][pos.col].get()->GetText() == "") {
-        return nullptr;
+const Cell* Sheet::GetConcreteCell(Position position) const {
+  const Cell* result = GetConcreteCell(position);
+  return result;
+}
 
-      } else {
-        return cells_[pos.row][pos.col].get();
-      }
-
-    } else {
-      return nullptr;
-    }
-
-  } else {
-    throw InvalidPositionException("invalid cell position. getcell");
+void Sheet::ClearCell(Position position) {
+  if (!position.IsValid()) {
+    throw InvalidPositionException("Position is not valid.");
   }
-}
 
-Cell* Sheet::GetConcreteCell(Position pos) {
-  if (pos.IsValid()) {
-    if (pos.row < int(std::size(cells_)) &&
-        pos.col < int(std::size(cells_[pos.row]))) {
-      return cells_[pos.row][pos.col].get();
+  if (position.row < int(std::size(spreadsheet_)) &&
+      position.col < int(std::size(spreadsheet_[position.row]))) {
+    if (spreadsheet_[position.row][position.col]) {
+      spreadsheet_[position.row][position.col]->Clear();
 
-    } else {
-      return nullptr;
-    }
-
-  } else {
-    throw InvalidPositionException("invalid cell position. get_cell");
-  }
-}
-
-const Cell* Sheet::GetConcreteCell(Position pos) const {
-  const Cell* const_result = GetConcreteCell(pos);
-  return const_result;
-}
-
-void Sheet::ClearCell(Position pos) {
-  if (pos.IsValid()) {
-    if (pos.row < int(std::size(cells_)) &&
-        pos.col < int(std::size(cells_[pos.row]))) {
-      if (cells_[pos.row][pos.col]) {
-        cells_[pos.row][pos.col]->Clear();
-
-        if (!cells_[pos.row][pos.col]->IsReferenced()) {
-          cells_[pos.row][pos.col].reset();
-        }
+      if (!spreadsheet_[position.row][position.col]->IsReferenced()) {
+        spreadsheet_[position.row][position.col].reset();
       }
     }
-
-  } else {
-    throw InvalidPositionException("invalid cell position. clearcell");
   }
 }
 
 Size Sheet::GetPrintableSize() const {
   Size size;
 
-  for (int row = 0; row < int(std::size(cells_)); ++row) {
-    for (int col = (int(std::size(cells_[row])) - 1); col >= 0; --col) {
-      if (cells_[row][col]) {
-        if (cells_[row][col]->GetText().empty()) {
-          continue;
-
-        } else {
+  for (int row = 0; row < int(std::size(spreadsheet_)); ++row) {
+    for (int col = 0; col < int(std::size(spreadsheet_[row])); ++col) {
+      if (spreadsheet_[row][col]) {
+        if (!spreadsheet_[row][col]->GetText().empty()) {
           size.rows = std::max(size.rows, row + 1);
           size.cols = std::max(size.cols, col + 1);
-          break;
         }
       }
     }
@@ -132,10 +116,10 @@ void Sheet::PrintValues(std::ostream& output) const {
         output << '\t';
       }
 
-      if (col < int(std::size(cells_[row]))) {
-        if (cells_[row][col]) {
+      if (col < int(std::size(spreadsheet_[row]))) {
+        if (spreadsheet_[row][col]) {
           std::visit([&output](const auto& value) { output << value; },
-                     cells_[row][col]->GetValue());
+                     spreadsheet_[row][col]->GetValue());
         }
       }
     }
@@ -151,9 +135,9 @@ void Sheet::PrintTexts(std::ostream& output) const {
         output << '\t';
       }
 
-      if (col < int(std::size(cells_[row]))) {
-        if (cells_[row][col]) {
-          output << cells_[row][col]->GetText();
+      if (col < int(std::size(spreadsheet_[row]))) {
+        if (spreadsheet_[row][col]) {
+          output << spreadsheet_[row][col]->GetText();
         }
       }
     }

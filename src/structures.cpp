@@ -46,8 +46,8 @@ Position Position::FromString(std::string_view str) {
   auto letters = str.substr(0, it - str.begin());
   auto digits = str.substr(it - str.begin());
 
-  if (letters.empty() || digits.empty() || letters.size() > MAX_POS_LETTER_COUNT ||
-      !std::isdigit(digits[0])) {
+  if (letters.empty() || digits.empty() ||
+      letters.size() > MAX_POS_LETTER_COUNT || !std::isdigit(digits[0])) {
     return Position::NONE;
   }
 
