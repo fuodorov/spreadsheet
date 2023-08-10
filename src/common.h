@@ -29,7 +29,6 @@ struct Position {
 struct Size {
   int rows = 0;
   int cols = 0;
-
   bool operator==(Size rhs) const;
 };
 
@@ -96,7 +95,6 @@ inline constexpr char ESCAPE_SIGN = '\'';
 class SheetInterface {
  public:
   virtual ~SheetInterface() = default;
-
   virtual void SetCell(Position pos, std::string text) = 0;
   virtual const CellInterface* GetCell(Position pos) const = 0;
   virtual CellInterface* GetCell(Position pos) = 0;
