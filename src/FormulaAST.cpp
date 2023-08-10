@@ -115,32 +115,34 @@ class BinaryOpExpr final : public Expr {
   }
 
   double Evaluate(const std::function<double(Position)>& args) const override {
-    double value;
+    double value = 0;
+    double lhs = lhs_->Evaluate(args);
+    double rhs = rhs_->Evaluate(args);
 
     switch (type_) {
       case Add:
-        value = lhs_->Evaluate(args) + rhs_->Evaluate(args);
+        value = lhs + rhs;
         break;
 
       case Subtract:
-        value = lhs_->Evaluate(args) - rhs_->Evaluate(args);
+        value = lhs - rhs;
         break;
 
       case Multiply:
-        value = lhs_->Evaluate(args) * rhs_->Evaluate(args);
+        value = lhs * rhs;
         break;
 
       case Divide:
 
-        if (rhs_->Evaluate(args) != 0) {
-          value = lhs_->Evaluate(args) / rhs_->Evaluate(args);
+        if (rhs != 0) {
+          value = lhs / rhs;
         } else {
           throw FormulaError(FormulaError::Category::Div0);
         }
         break;
 
       default:
-        throw std::invalid_argument("unidentified operation type");
+        throw std::invalid_argument("Unknown binary operator");
     }
     if (std::isfinite(value)) {
       return value;
@@ -181,16 +183,8 @@ class UnaryOpExpr final : public Expr {
   ExprPrecedence GetPrecedence() const override { return EP_UNARY; }
 
   double Evaluate(const std::function<double(Position)>& args) const override {
-    switch (type_) {
-      case UnaryPlus:
-        return operand_->Evaluate(args);
-
-      case UnaryMinus:
-        return -operand_->Evaluate(args);
-
-      default:
-        throw std::invalid_argument("unidentified operation type");
-    }
+    return type_ == UnaryPlus ? operand_->Evaluate(args)
+                              : -operand_->Evaluate(args);
   }
 
  private:
