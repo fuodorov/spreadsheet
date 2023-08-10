@@ -35,8 +35,7 @@ std::string Position::ToString() const {
     c = c / LETTERS - 1;
   }
 
-  result += std::to_string(row + 1);
-  return result;
+  return result + std::to_string(row + 1);
 }
 
 Position Position::FromString(std::string_view str) {
@@ -47,25 +46,18 @@ Position Position::FromString(std::string_view str) {
   auto letters = str.substr(0, it - str.begin());
   auto digits = str.substr(it - str.begin());
 
-  if (letters.empty() || digits.empty()) {
-    return Position::NONE;
-  }
-  if (letters.size() > MAX_POS_LETTER_COUNT) {
-    return Position::NONE;
-  }
-  if (!std::isdigit(digits[0])) {
+  if (letters.empty() || digits.empty() || letters.size() > MAX_POS_LETTER_COUNT ||
+      !std::isdigit(digits[0])) {
     return Position::NONE;
   }
 
   int row;
   std::istringstream row_in{std::string{digits}};
-
   if (!(row_in >> row) || !row_in.eof()) {
     return Position::NONE;
   }
 
   int col = 0;
-
   for (char ch : letters) {
     col *= LETTERS;
     col += ch - 'A' + 1;
@@ -76,10 +68,4 @@ Position Position::FromString(std::string_view str) {
 
 bool Size::operator==(Size rhs) const {
   return cols == rhs.cols && rows == rhs.rows;
-}
-
-std::ostream& operator<<(std::ostream& os, const Position& pos) {
-  os << "Row: " << pos.row << ", Col: " << pos.col
-     << " ToString: " << pos.ToString();
-  return os;
 }
