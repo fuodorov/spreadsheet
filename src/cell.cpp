@@ -24,7 +24,7 @@ void Cell::Set(std::string text, Position pos, Sheet* sheet) {
     std::vector<Position> pos_cell_in_formula = impl->GetReferencedCells();
     for (Position pos_cell_in_formula : pos_cell_in_formula) {
       if (pos_cell_in_formula.IsValid() &&
-          !sheet->GetCell(pos_cell_in_formula)) {
+          !sheet->GetCellInterface(pos_cell_in_formula)) {
         sheet->SetCell(pos_cell_in_formula, "");
       }
     }
@@ -51,10 +51,10 @@ void Cell::Set(std::string text, Position pos, Sheet* sheet) {
   auto iterim_st = impl_->GetText();
   for (const auto& pos : impl_->GetReferencedCells()) {
     auto four_st = pos_.ToString();
-    Cell* used = sheet_.GetConcreteCell(pos);
+    Cell* used = sheet_.GetCell(pos);
     if (!used) {
       sheet_.SetCell(pos, "");
-      used = sheet_.GetConcreteCell(pos);
+      used = sheet_.GetCell(pos);
     }
     auto five_st = used->pos_.ToString();
     using_cells_.insert(used);
@@ -68,7 +68,7 @@ bool Cell::HasCircularDependency(Cell* cell,
                                  std::unordered_set<Cell*>& visitedPos,
                                  const Position pos_const) {
   for (auto dependentPos : cell->GetReferencedCells()) {
-    Cell* ref_cell = sheet_.GetConcreteCell(dependentPos);
+    Cell* ref_cell = sheet_.GetCell(dependentPos);
     if (pos_const == dependentPos) {
       return true;
     }
@@ -90,7 +90,7 @@ bool Cell::CheckCircularDependencies(const Impl& new_impl, Position pos) {
     if (position == pos) {
       return true;
     }
-    Cell* ref_cell = sheet_.GetConcreteCell(position);
+    Cell* ref_cell = sheet_.GetCell(position);
     visitedPos.insert(ref_cell);
     if (HasCircularDependency(ref_cell, visitedPos, pos_const)) {
       return true;

@@ -31,7 +31,7 @@ class Formula : public FormulaInterface {
           throw FormulaError(FormulaError::Category::Ref);
         }
 
-        const auto* cell = sheet.GetCell(position);
+        const auto* cell = sheet.GetCellInterface(position);
         if (!cell) {
           return 0.0;
         }

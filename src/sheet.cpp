@@ -33,7 +33,7 @@ void Sheet::SetCell(Position position, std::string text) {
                                                 this);
 }
 
-CellInterface* Sheet::GetCell(Position position) {
+CellInterface* Sheet::GetCellInterface(Position position) {
   if (!position.IsValid()) {
     throw InvalidPositionException("Position is not valid.");
   }
@@ -44,7 +44,7 @@ CellInterface* Sheet::GetCell(Position position) {
              : nullptr;
 }
 
-const CellInterface* Sheet::GetCell(Position position) const {
+const CellInterface* Sheet::GetCellInterface(Position position) const {
   if (!position.IsValid()) {
     throw InvalidPositionException("Position is not valid.");
   }
@@ -59,7 +59,7 @@ const CellInterface* Sheet::GetCell(Position position) const {
   }
 }
 
-Cell* Sheet::GetConcreteCell(Position position) {
+Cell* Sheet::GetCell(Position position) {
   if (!position.IsValid()) {
     throw InvalidPositionException("Position is not valid.");
   }
@@ -70,8 +70,8 @@ Cell* Sheet::GetConcreteCell(Position position) {
              : nullptr;
 }
 
-const Cell* Sheet::GetConcreteCell(Position position) const {
-  const Cell* result = GetConcreteCell(position);
+const Cell* Sheet::GetCell(Position position) const {
+  const Cell* result = GetCell(position);
   return result;
 }
 

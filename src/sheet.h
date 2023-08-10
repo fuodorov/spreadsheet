@@ -11,10 +11,10 @@ class Sheet : public SheetInterface {
   ~Sheet();
 
   void SetCell(Position position, std::string text) override;
-  CellInterface* GetCell(Position position) override;
-  const CellInterface* GetCell(Position position) const override;
-  Cell* GetConcreteCell(Position position);
-  const Cell* GetConcreteCell(Position position) const;
+  CellInterface* GetCellInterface(Position position) override;
+  const CellInterface* GetCellInterface(Position position) const override;
+  Cell* GetCell(Position position);
+  const Cell* GetCell(Position position) const;
   void ClearCell(Position position) override;
   Size GetPrintableSize() const override;
   void PrintValues(std::ostream& output) const override;

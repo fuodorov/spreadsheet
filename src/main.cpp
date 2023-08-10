@@ -88,7 +88,7 @@ void TestInvalidPosition() {
   } catch (const InvalidPositionException&) {
   }
   try {
-    sheet->GetCell(Position{0, -2});
+    sheet->GetCellInterface(Position{0, -2});
   } catch (const InvalidPositionException&) {
   }
   try {
@@ -102,7 +102,7 @@ void TestSetCellPlainText() {
 
   auto checkCell = [&](Position pos, std::string text) {
     sheet->SetCell(pos, text);
-    CellInterface* cell = sheet->GetCell(pos);
+    CellInterface* cell = sheet->GetCellInterface(pos);
     ASSERT(cell != nullptr);
     ASSERT_EQUAL(cell->GetText(), text);
     ASSERT_EQUAL(std::get<std::string>(cell->GetValue()), text);
@@ -114,10 +114,10 @@ void TestSetCellPlainText() {
   checkCell("A3"_pos, "Meow");
 
   const SheetInterface& constSheet = *sheet;
-  ASSERT_EQUAL(constSheet.GetCell("B2"_pos)->GetText(), "Purr");
+  ASSERT_EQUAL(constSheet.GetCellInterface("B2"_pos)->GetText(), "Purr");
 
   sheet->SetCell("A3"_pos, "'=escaped");
-  CellInterface* cell = sheet->GetCell("A3"_pos);
+  CellInterface* cell = sheet->GetCellInterface("A3"_pos);
   ASSERT_EQUAL(cell->GetText(), "'=escaped");
   ASSERT_EQUAL(std::get<std::string>(cell->GetValue()), "=escaped");
 }
@@ -127,7 +127,7 @@ void TestClearCell() {
 
   sheet->SetCell("C2"_pos, "Me gusta");
   sheet->ClearCell("C2"_pos);
-  ASSERT(sheet->GetCell("C2"_pos) == nullptr);
+  ASSERT(sheet->GetCellInterface("C2"_pos) == nullptr);
 
   sheet->ClearCell("A1"_pos);
   sheet->ClearCell("J10"_pos);
@@ -198,11 +198,11 @@ void TestErrorValue() {
   auto sheet = CreateSheet();
   sheet->SetCell("E2"_pos, "A1");
   sheet->SetCell("E4"_pos, "=E2");
-  ASSERT_EQUAL(sheet->GetCell("E4"_pos)->GetValue(),
+  ASSERT_EQUAL(sheet->GetCellInterface("E4"_pos)->GetValue(),
                CellInterface::Value(FormulaError::Category::Value));
 
   sheet->SetCell("E2"_pos, "3D");
-  ASSERT_EQUAL(sheet->GetCell("E4"_pos)->GetValue(),
+  ASSERT_EQUAL(sheet->GetCellInterface("E4"_pos)->GetValue(),
                CellInterface::Value(FormulaError::Category::Value));
 }
 
@@ -212,22 +212,22 @@ void TestErrorDiv0() {
   constexpr double max = std::numeric_limits<double>::max();
 
   sheet->SetCell("A1"_pos, "=1/0");
-  ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(),
+  ASSERT_EQUAL(sheet->GetCellInterface("A1"_pos)->GetValue(),
                CellInterface::Value(FormulaError::Category::Div0));
 
   sheet->SetCell("A1"_pos, "=1e+200/1e-200");
-  ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(),
+  ASSERT_EQUAL(sheet->GetCellInterface("A1"_pos)->GetValue(),
                CellInterface::Value(FormulaError::Category::Div0));
 
   sheet->SetCell("A1"_pos, "=0/0");
-  ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(),
+  ASSERT_EQUAL(sheet->GetCellInterface("A1"_pos)->GetValue(),
                CellInterface::Value(FormulaError::Category::Div0));
 
   {
     std::ostringstream formula;
     formula << '=' << max << '+' << max;
     sheet->SetCell("A1"_pos, formula.str());
-    ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(),
+    ASSERT_EQUAL(sheet->GetCellInterface("A1"_pos)->GetValue(),
                  CellInterface::Value(FormulaError::Category::Div0));
   }
 
@@ -235,7 +235,7 @@ void TestErrorDiv0() {
     std::ostringstream formula;
     formula << '=' << -max << '-' << max;
     sheet->SetCell("A1"_pos, formula.str());
-    ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(),
+    ASSERT_EQUAL(sheet->GetCellInterface("A1"_pos)->GetValue(),
                  CellInterface::Value(FormulaError::Category::Div0));
   }
 
@@ -243,7 +243,7 @@ void TestErrorDiv0() {
     std::ostringstream formula;
     formula << '=' << max << '*' << max;
     sheet->SetCell("A1"_pos, formula.str());
-    ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(),
+    ASSERT_EQUAL(sheet->GetCellInterface("A1"_pos)->GetValue(),
                  CellInterface::Value(FormulaError::Category::Div0));
   }
 }
@@ -251,7 +251,7 @@ void TestErrorDiv0() {
 void TestEmptyCellTreatedAsZero() {
   auto sheet = CreateSheet();
   sheet->SetCell("A1"_pos, "=B2");
-  ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(), CellInterface::Value(0.0));
+  ASSERT_EQUAL(sheet->GetCellInterface("A1"_pos)->GetValue(), CellInterface::Value(0.0));
 }
 
 void TestFormulaInvalidPosition() {
@@ -296,25 +296,25 @@ void TestCellReferences() {
   sheet->SetCell("A2"_pos, "=A1");
   sheet->SetCell("B2"_pos, "=A1");
 
-  ASSERT(sheet->GetCell("A1"_pos)->GetReferencedCells().empty());
-  ASSERT_EQUAL(sheet->GetCell("A2"_pos)->GetReferencedCells(),
+  ASSERT(sheet->GetCellInterface("A1"_pos)->GetReferencedCells().empty());
+  ASSERT_EQUAL(sheet->GetCellInterface("A2"_pos)->GetReferencedCells(),
                std::vector{"A1"_pos});
-  ASSERT_EQUAL(sheet->GetCell("B2"_pos)->GetReferencedCells(),
+  ASSERT_EQUAL(sheet->GetCellInterface("B2"_pos)->GetReferencedCells(),
                std::vector{"A1"_pos});
 
   // Ссылка на пустую ячейку
   sheet->SetCell("B2"_pos, "=B1");
-  ASSERT(sheet->GetCell("B1"_pos)->GetReferencedCells().empty());
-  ASSERT_EQUAL(sheet->GetCell("B2"_pos)->GetReferencedCells(),
+  ASSERT(sheet->GetCellInterface("B1"_pos)->GetReferencedCells().empty());
+  ASSERT_EQUAL(sheet->GetCellInterface("B2"_pos)->GetReferencedCells(),
                std::vector{"B1"_pos});
 
   sheet->SetCell("A2"_pos, "");
-  ASSERT(sheet->GetCell("A1"_pos)->GetReferencedCells().empty());
-  ASSERT(sheet->GetCell("A2"_pos)->GetReferencedCells().empty());
+  ASSERT(sheet->GetCellInterface("A1"_pos)->GetReferencedCells().empty());
+  ASSERT(sheet->GetCellInterface("A2"_pos)->GetReferencedCells().empty());
 
   // Ссылка на ячейку за пределами таблицы
   sheet->SetCell("B1"_pos, "=C3");
-  ASSERT_EQUAL(sheet->GetCell("B1"_pos)->GetReferencedCells(),
+  ASSERT_EQUAL(sheet->GetCellInterface("B1"_pos)->GetReferencedCells(),
                std::vector{"C3"_pos});
 }
 
@@ -350,7 +350,7 @@ void TestCellCircularReferences() {
   }
 
   ASSERT(caught);
-  ASSERT_EQUAL(sheet->GetCell("M6"_pos)->GetText(), "Ready");
+  ASSERT_EQUAL(sheet->GetCellInterface("M6"_pos)->GetText(), "Ready");
 }
 }  // namespace
 

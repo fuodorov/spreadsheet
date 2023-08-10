@@ -96,8 +96,8 @@ class SheetInterface {
  public:
   virtual ~SheetInterface() = default;
   virtual void SetCell(Position pos, std::string text) = 0;
-  virtual const CellInterface* GetCell(Position pos) const = 0;
-  virtual CellInterface* GetCell(Position pos) = 0;
+  virtual const CellInterface* GetCellInterface(Position pos) const = 0;
+  virtual CellInterface* GetCellInterface(Position pos) = 0;
   virtual void ClearCell(Position pos) = 0;
   virtual Size GetPrintableSize() const = 0;
   virtual void PrintValues(std::ostream& output) const = 0;
