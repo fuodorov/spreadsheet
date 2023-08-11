@@ -30,8 +30,8 @@ class Cell : public CellInterface {
  private:
   class Impl;
 
-  bool IsLoop(Cell* cell, std::unordered_set<Cell*>& cells,
-              const Position current);
+  bool IsLoop(Cell* cell, std::unordered_set<Cell*>& visitedPos,
+              const Position pos_const);
   bool FindLoop(const Impl& new_impl, Position pos);
 
   class Impl {
