@@ -11,137 +11,137 @@
 
 Cell::Cell(Sheet& sheet)
     : impl_(std::make_unique<EmptyImpl>()), sheet_(sheet) {}
+
 Cell::~Cell() = default;
 
-void Cell::Set(std::string text, Position pos, Sheet* sheet) {
+void Cell::Set(std::string content, Position position, Sheet* sheet) {
   std::unique_ptr<Impl> impl;
-  std::forward_list<Position> set_formula_cells;
 
-  if (text.empty()) {
+  if (content.empty()) {
     impl = std::make_unique<EmptyImpl>();
-  } else if (text.size() >= 2 && text[0] == FORMULA_SIGN) {
-    impl = std::make_unique<FormulaImpl>(std::move(text), sheet_);
-    std::vector<Position> pos_cell_in_formula = impl->GetReferencedCells();
-    for (Position pos_cell_in_formula : pos_cell_in_formula) {
-      if (pos_cell_in_formula.IsValid() &&
-          !sheet->GetCellInterface(pos_cell_in_formula)) {
-        sheet->SetCell(pos_cell_in_formula, "");
+  }
+
+  if (content.size() >= 2 && content[0] == FORMULA_SIGN) {
+    impl = std::make_unique<FormulaImpl>(std::move(content), sheet_);
+
+    for (Position cell : impl->GetReferencedCells()) {
+      if (cell.IsValid() && !sheet->GetCellInterface(cell)) {
+        sheet->SetCell(cell, "");
       }
     }
-
   } else {
-    impl = std::make_unique<TextImpl>(std::move(text));
+    impl = std::make_unique<TextImpl>(std::move(content));
   }
 
-  if (FindLoop(*impl, pos)) {
-    throw CircularDependencyException("circular dependency detected");
+  if (FindLoop(*impl, position)) {
+    throw CircularDependencyException("Circular dependency");
   }
-
-  auto second_st = this->pos_.ToString();
 
   impl_ = std::move(impl);
 
-  for (Cell* used : using_cells_) {
-    auto third_st = used->pos_.ToString();
-    used->calculated_cells_.erase(this);
+  for (Cell* cell : calc_cells_) {
+    cell->use_cells_.erase(this);
   }
 
-  using_cells_.clear();
+  use_cells_.clear();
 
-  auto iterim_st = impl_->GetText();
-  for (const auto& pos : impl_->GetReferencedCells()) {
-    auto four_st = pos_.ToString();
-    Cell* used = sheet_.GetCell(pos);
-    if (!used) {
-      sheet_.SetCell(pos, "");
-      used = sheet_.GetCell(pos);
+  for (const auto& referenced_cell : impl_->GetReferencedCells()) {
+    Cell* cell = sheet_.GetCell(referenced_cell);
+
+    if (!cell) {
+      sheet_.SetCell(referenced_cell, "");
+      cell = sheet_.GetCell(referenced_cell);
     }
-    auto five_st = used->pos_.ToString();
-    using_cells_.insert(used);
-    used->calculated_cells_.insert(this);
+
+    use_cells_.insert(cell);
+    cell->calc_cells_.insert(this);
   }
 
   ClearCache();
 }
 
-bool Cell::IsLoop(Cell* cell, std::unordered_set<Cell*>& visitedPos,
-                  const Position pos_const) {
-  for (auto dependentPos : cell->GetReferencedCells()) {
-    Cell* ref_cell = sheet_.GetCell(dependentPos);
-    if (pos_const == dependentPos) {
+bool Cell::IsLoop(Cell* cell, std::unordered_set<Cell*>& cells,
+                  const Position position) {
+  for (auto cell : cell->GetReferencedCells()) {
+    if (position == cell) {
       return true;
     }
 
-    if (visitedPos.find(ref_cell) == visitedPos.end()) {
-      visitedPos.insert(ref_cell);
-      if (IsLoop(ref_cell, visitedPos, pos_const)) return true;
+    Cell* referenced_cell = sheet_.GetCell(cell);
+    if (cells.find(referenced_cell) == cells.end()) {
+      cells.insert(referenced_cell);
+      if (IsLoop(referenced_cell, cells, position)) return true;
     }
   }
 
   return false;
 }
 
-bool Cell::FindLoop(const Impl& new_impl, Position pos) {
-  const Position pos_const = pos;
-  const auto& cells = new_impl.GetReferencedCells();
-  std::unordered_set<Cell*> visitedPos;
-  for (const auto& position : cells) {
-    if (position == pos) {
+bool Cell::FindLoop(const Impl& impl, Position position) {
+  const Position position_const = position;
+  std::unordered_set<Cell*> cells;
+
+  for (const auto& cell : impl.GetReferencedCells()) {
+    if (cell == position) {
       return true;
     }
-    Cell* ref_cell = sheet_.GetCell(position);
-    visitedPos.insert(ref_cell);
-    if (IsLoop(ref_cell, visitedPos, pos_const)) {
+
+    Cell* referenced_cell = sheet_.GetCell(cell);
+    cells.insert(referenced_cell);
+    if (IsLoop(referenced_cell, cells, position_const)) {
       return true;
     }
   }
+
   return false;
 }
 
 void Cell::Clear() { Set("", pos_, &sheet_); }
 
 Cell::Value Cell::GetValue() const { return impl_->GetValue(); }
+
 std::string Cell::GetText() const { return impl_->GetText(); }
+
 std::vector<Position> Cell::GetReferencedCells() const {
   return impl_->GetReferencedCells();
 }
-bool Cell::IsReferenced() const { return !calculated_cells_.empty(); }
+
+bool Cell::IsReferenced() const { return !calc_cells_.empty(); }
 
 void Cell::ClearCache() {
   if (!impl_->IsEmptyCache()) {
     impl_->ClearCache();
 
-    for (Cell* dependent : calculated_cells_) {
-      dependent->ClearCache();
+    for (Cell* cell : calc_cells_) {
+      cell->ClearCache();
     }
   }
 }
 
 std::vector<Position> Cell::Impl::GetReferencedCells() const { return {}; }
+
 bool Cell::Impl::IsEmptyCache() { return false; }
+
 void Cell::Impl::ClearCache() {}
 
 Cell::Value Cell::EmptyImpl::GetValue() const { return ""; }
+
 std::string Cell::EmptyImpl::GetText() const { return ""; }
 
-Cell::TextImpl::TextImpl(std::string text) : text_(std::move(text)) {}
+Cell::TextImpl::TextImpl(std::string content) : text_(std::move(content)) {}
 
 Cell::Value Cell::TextImpl::GetValue() const {
   if (text_.empty()) {
-    throw FormulaException("it is empty impl, not text");
-
-  } else if (text_.at(0) == ESCAPE_SIGN) {
-    return text_.substr(1);
-
-  } else {
-    return text_;
+    throw FormulaException("Empty cell");
   }
+
+  return text_.at(0) == ESCAPE_SIGN ? text_.substr(1) : text_;
 }
 
 std::string Cell::TextImpl::GetText() const { return text_; }
 
-Cell::FormulaImpl::FormulaImpl(std::string text, SheetInterface& sheet)
-    : formula_(ParseFormula(text.substr(1))), sheet_(sheet) {}
+Cell::FormulaImpl::FormulaImpl(std::string content, SheetInterface& sheet)
+    : formula_(ParseFormula(content.substr(1))), sheet_(sheet) {}
 
 Cell::Value Cell::FormulaImpl::GetValue() const {
   if (!db_) {
@@ -153,8 +153,11 @@ Cell::Value Cell::FormulaImpl::GetValue() const {
 std::string Cell::FormulaImpl::GetText() const {
   return FORMULA_SIGN + formula_->GetExpression();
 }
+
 std::vector<Position> Cell::FormulaImpl::GetReferencedCells() const {
   return formula_->GetReferencedCells();
 }
+
 bool Cell::FormulaImpl::IsEmptyCache() { return !db_.has_value(); }
+
 void Cell::FormulaImpl::ClearCache() { db_.reset(); }

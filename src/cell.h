@@ -16,7 +16,7 @@ class Cell : public CellInterface {
   Cell(Sheet& sheet);
   ~Cell();
 
-  void Set(std::string text, Position pos, Sheet* sheet);
+  void Set(std::string content, Position pos, Sheet* sheet);
   void Clear();
 
   Value GetValue() const override;
@@ -30,9 +30,9 @@ class Cell : public CellInterface {
  private:
   class Impl;
 
-  bool IsLoop(Cell* cell, std::unordered_set<Cell*>& visitedPos,
-              const Position pos_const);
-  bool FindLoop(const Impl& new_impl, Position pos);
+  bool IsLoop(Cell* cell, std::unordered_set<Cell*>& cells,
+              const Position position);
+  bool FindLoop(const Impl& impl, Position position);
 
   class Impl {
    public:
@@ -54,7 +54,7 @@ class Cell : public CellInterface {
 
   class TextImpl : public Impl {
    public:
-    explicit TextImpl(std::string text);
+    explicit TextImpl(std::string content);
     Value GetValue() const override;
     std::string GetText() const override;
 
@@ -64,7 +64,7 @@ class Cell : public CellInterface {
 
   class FormulaImpl : public Impl {
    public:
-    explicit FormulaImpl(std::string text, SheetInterface& sheet);
+    explicit FormulaImpl(std::string content, SheetInterface& sheet);
 
     Value GetValue() const override;
     std::string GetText() const override;
@@ -82,7 +82,7 @@ class Cell : public CellInterface {
   std::unique_ptr<Impl> impl_;
   Sheet& sheet_;
 
-  std::unordered_set<Cell*> calculated_cells_;
-  std::unordered_set<Cell*> using_cells_;
+  std::unordered_set<Cell*> calc_cells_;
+  std::unordered_set<Cell*> use_cells_;
   Position pos_;
 };
