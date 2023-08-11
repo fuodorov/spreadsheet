@@ -25,7 +25,7 @@ class Cell : public CellInterface {
   std::vector<Position> GetReferencedCells() const override;
 
   bool IsReferenced() const;
-  void ClearCache(bool force = false);
+  void ClearCache();
 
  private:
   class Impl;
@@ -74,8 +74,8 @@ class Cell : public CellInterface {
     void ClearCache() override;
 
    private:
-    mutable std::optional<FormulaInterface::Value> cache_;
-    std::unique_ptr<FormulaInterface> formula_ptr_;
+    mutable std::optional<FormulaInterface::Value> db_;
+    std::unique_ptr<FormulaInterface> formula_;
     SheetInterface& sheet_;
   };
 

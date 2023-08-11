@@ -61,7 +61,7 @@ void Cell::Set(std::string text, Position pos, Sheet* sheet) {
     used->calculated_cells_.insert(this);
   }
 
-  ClearCache(true);
+  ClearCache();
 }
 
 bool Cell::IsLoop(Cell* cell, std::unordered_set<Cell*>& visitedPos,
@@ -107,8 +107,8 @@ std::vector<Position> Cell::GetReferencedCells() const {
 }
 bool Cell::IsReferenced() const { return !calculated_cells_.empty(); }
 
-void Cell::ClearCache(bool force /*= false*/) {
-  if (!impl_->IsEmptyCache() || force) {
+void Cell::ClearCache() {
+  if (!impl_->IsEmptyCache()) {
     impl_->ClearCache();
 
     for (Cell* dependent : calculated_cells_) {
@@ -141,20 +141,20 @@ Cell::Value Cell::TextImpl::GetValue() const {
 std::string Cell::TextImpl::GetText() const { return text_; }
 
 Cell::FormulaImpl::FormulaImpl(std::string text, SheetInterface& sheet)
-    : formula_ptr_(ParseFormula(text.substr(1))), sheet_(sheet) {}
+    : formula_(ParseFormula(text.substr(1))), sheet_(sheet) {}
 
 Cell::Value Cell::FormulaImpl::GetValue() const {
-  if (!cache_) {
-    cache_ = formula_ptr_->Evaluate(sheet_);
+  if (!db_) {
+    db_ = formula_->Evaluate(sheet_);
   }
-  return std::visit([](auto& helper) { return Value(helper); }, *cache_);
+  return std::visit([](auto& helper) { return Value(helper); }, *db_);
 }
 
 std::string Cell::FormulaImpl::GetText() const {
-  return FORMULA_SIGN + formula_ptr_->GetExpression();
+  return FORMULA_SIGN + formula_->GetExpression();
 }
 std::vector<Position> Cell::FormulaImpl::GetReferencedCells() const {
-  return formula_ptr_->GetReferencedCells();
+  return formula_->GetReferencedCells();
 }
-bool Cell::FormulaImpl::IsEmptyCache() { return !cache_.has_value(); }
-void Cell::FormulaImpl::ClearCache() { cache_.reset(); }
+bool Cell::FormulaImpl::IsEmptyCache() { return !db_.has_value(); }
+void Cell::FormulaImpl::ClearCache() { db_.reset(); }
