@@ -11,8 +11,6 @@
 
 class Sheet;
 
-enum class CellState { NotVisited, Visiting, Visited };
-
 class Cell : public CellInterface {
  public:
   Cell(Sheet& sheet);
@@ -24,19 +22,17 @@ class Cell : public CellInterface {
   Value GetValue() const override;
   std::string GetText() const override;
 
-  bool CheckCircularDependency(
-      const std::vector<Position>& referencedCells) const;
   std::vector<Position> GetReferencedCells() const override;
 
   bool IsReferenced() const;
-  void ResetCache(/*bool force*/ bool force = false);
+  void ClearCache(bool force = false);
 
  private:
   class Impl;
 
-  bool HasCircularDependency(Cell* cell, std::unordered_set<Cell*>& visitedPos,
-                             const Position pos_const);
-  bool CheckCircularDependencies(const Impl& new_impl, Position pos);
+  bool IsLoop(Cell* cell, std::unordered_set<Cell*>& cells,
+              const Position current);
+  bool FindLoop(const Impl& new_impl, Position pos);
 
   class Impl {
    public:
@@ -44,8 +40,8 @@ class Cell : public CellInterface {
     virtual std::string GetText() const = 0;
     virtual std::vector<Position> GetReferencedCells() const;
 
-    virtual bool HasCache();
-    virtual void ResetCache();
+    virtual bool IsEmptyCache();
+    virtual void ClearCache();
 
     virtual ~Impl() = default;
   };
@@ -74,8 +70,8 @@ class Cell : public CellInterface {
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
 
-    bool HasCache() override;
-    void ResetCache() override;
+    bool IsEmptyCache() override;
+    void ClearCache() override;
 
    private:
     mutable std::optional<FormulaInterface::Value> cache_;

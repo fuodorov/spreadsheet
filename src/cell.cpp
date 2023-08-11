@@ -33,7 +33,7 @@ void Cell::Set(std::string text, Position pos, Sheet* sheet) {
     impl = std::make_unique<TextImpl>(std::move(text));
   }
 
-  if (CheckCircularDependencies(*impl, pos)) {
+  if (FindLoop(*impl, pos)) {
     throw CircularDependencyException("circular dependency detected");
   }
 
@@ -61,12 +61,11 @@ void Cell::Set(std::string text, Position pos, Sheet* sheet) {
     used->calculated_cells_.insert(this);
   }
 
-  ResetCache(true);
+  ClearCache(true);
 }
 
-bool Cell::HasCircularDependency(Cell* cell,
-                                 std::unordered_set<Cell*>& visitedPos,
-                                 const Position pos_const) {
+bool Cell::IsLoop(Cell* cell, std::unordered_set<Cell*>& visitedPos,
+                  const Position pos_const) {
   for (auto dependentPos : cell->GetReferencedCells()) {
     Cell* ref_cell = sheet_.GetCell(dependentPos);
     if (pos_const == dependentPos) {
@@ -75,14 +74,14 @@ bool Cell::HasCircularDependency(Cell* cell,
 
     if (visitedPos.find(ref_cell) == visitedPos.end()) {
       visitedPos.insert(ref_cell);
-      if (HasCircularDependency(ref_cell, visitedPos, pos_const)) return true;
+      if (IsLoop(ref_cell, visitedPos, pos_const)) return true;
     }
   }
 
   return false;
 }
 
-bool Cell::CheckCircularDependencies(const Impl& new_impl, Position pos) {
+bool Cell::FindLoop(const Impl& new_impl, Position pos) {
   const Position pos_const = pos;
   const auto& cells = new_impl.GetReferencedCells();
   std::unordered_set<Cell*> visitedPos;
@@ -92,7 +91,7 @@ bool Cell::CheckCircularDependencies(const Impl& new_impl, Position pos) {
     }
     Cell* ref_cell = sheet_.GetCell(position);
     visitedPos.insert(ref_cell);
-    if (HasCircularDependency(ref_cell, visitedPos, pos_const)) {
+    if (IsLoop(ref_cell, visitedPos, pos_const)) {
       return true;
     }
   }
@@ -108,19 +107,19 @@ std::vector<Position> Cell::GetReferencedCells() const {
 }
 bool Cell::IsReferenced() const { return !calculated_cells_.empty(); }
 
-void Cell::ResetCache(bool force /*= false*/) {
-  if (impl_->HasCache() || force) {
-    impl_->ResetCache();
+void Cell::ClearCache(bool force /*= false*/) {
+  if (!impl_->IsEmptyCache() || force) {
+    impl_->ClearCache();
 
     for (Cell* dependent : calculated_cells_) {
-      dependent->ResetCache();
+      dependent->ClearCache();
     }
   }
 }
 
 std::vector<Position> Cell::Impl::GetReferencedCells() const { return {}; }
-bool Cell::Impl::HasCache() { return true; }
-void Cell::Impl::ResetCache() {}
+bool Cell::Impl::IsEmptyCache() { return false; }
+void Cell::Impl::ClearCache() {}
 
 Cell::Value Cell::EmptyImpl::GetValue() const { return ""; }
 std::string Cell::EmptyImpl::GetText() const { return ""; }
@@ -157,5 +156,5 @@ std::string Cell::FormulaImpl::GetText() const {
 std::vector<Position> Cell::FormulaImpl::GetReferencedCells() const {
   return formula_ptr_->GetReferencedCells();
 }
-bool Cell::FormulaImpl::HasCache() { return cache_.has_value(); }
-void Cell::FormulaImpl::ResetCache() { cache_.reset(); }
+bool Cell::FormulaImpl::IsEmptyCache() { return !cache_.has_value(); }
+void Cell::FormulaImpl::ClearCache() { cache_.reset(); }
