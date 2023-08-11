@@ -7,25 +7,31 @@
 
 #include "cell.h"
 #include "common.h"
+#include "log/easylogging++.h"
 
 using namespace std::literals;
 
 Sheet::~Sheet() {}
 
 void Sheet::SetCell(Position position, std::string text) {
+  LOG(DEBUG) << "Set cell " << position.ToString() << " to " << text;
+
   if (!position.IsValid()) {
     throw InvalidPositionException("Position is not valid.");
   }
 
   if (position.row >= int(std::size(spreadsheet_))) {
+    LOG(DEBUG) << "Resizing rows to " << position.row + 1;
     spreadsheet_.resize(position.row + 1);
   }
 
   if (position.col >= int(std::size(spreadsheet_[position.row]))) {
+    LOG(DEBUG) << "Resizing cols to " << position.col + 1;
     spreadsheet_[position.row].resize(position.col + 1);
   }
 
   if (!spreadsheet_[position.row][position.col]) {
+    LOG(DEBUG) << "Creating new cell";
     spreadsheet_[position.row][position.col] = std::make_unique<Cell>(*this);
   }
 

@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "FormulaAST.h"
+#include "log/easylogging++.h"
 
 using namespace std::literals;
 
@@ -25,6 +26,7 @@ class Formula : public FormulaInterface {
 
   Value Evaluate(const SheetInterface& sheet) const {
     try {
+      LOG(DEBUG) << "Evaluating formula: " << GetExpression();
       std::function<double(Position)> func =
           [&sheet](const Position position) -> double {
         if (!position.IsValid()) {
@@ -38,14 +40,17 @@ class Formula : public FormulaInterface {
 
         const auto& value = cell->GetValue();
         if (std::holds_alternative<double>(value)) {
+          LOG(DEBUG) << "Cell " << position.ToString() << " is double";
           return std::get<double>(value);
         }
 
         if (std::holds_alternative<std::string>(value)) {
+          LOG(DEBUG) << "Cell " << position.ToString() << " is string";
           const auto& string_value = std::get<std::string>(value);
           std::regex regex_double(R"(^\s*([-+]?\d+(?:\.\d+)?)\s*$)");
           std::smatch match;
           if (std::regex_match(string_value, match, regex_double)) {
+            LOG(DEBUG) << "Cell " << position.ToString() << " is double";
             return std::stod(match[1]);
           }
 
@@ -68,6 +73,7 @@ class Formula : public FormulaInterface {
   }
 
   std::vector<Position> GetReferencedCells() const override {
+    LOG(DEBUG) << "Get referenced cells";
     std::vector<Position> cell_positions;
     for (const auto& cell : formula_ast_.GetCells()) {
       if (cell.IsValid()) {
@@ -78,6 +84,7 @@ class Formula : public FormulaInterface {
     cell_positions.erase(
         std::unique(cell_positions.begin(), cell_positions.end()),
         cell_positions.end());
+    LOG(DEBUG) << "Referenced cells: " << cell_positions.size();
     return cell_positions;
   }
 

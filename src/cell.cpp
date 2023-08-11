@@ -8,6 +8,7 @@
 #include <string>
 
 #include "sheet.h"
+#include "log/easylogging++.h"
 
 Cell::Cell(Sheet& sheet)
     : impl_(std::make_unique<EmptyImpl>()), sheet_(sheet) {}
@@ -15,13 +16,17 @@ Cell::Cell(Sheet& sheet)
 Cell::~Cell() = default;
 
 void Cell::Set(std::string content, Position position, Sheet* sheet) {
+  LOG(DEBUG) << "Set cell " << position.ToString() << " to " << content;
+
   std::unique_ptr<Impl> impl;
 
   if (content.empty()) {
+    LOG(DEBUG) << "Empty cell";
     impl = std::make_unique<EmptyImpl>();
   }
 
   if (content.size() >= 2 && content[0] == FORMULA_SIGN) {
+    LOG(DEBUG) << "Formula cell";
     impl = std::make_unique<FormulaImpl>(std::move(content), sheet_);
 
     for (Position cell : impl->GetReferencedCells()) {
@@ -78,10 +83,12 @@ bool Cell::IsLoop(Cell* cell, std::unordered_set<Cell*>& cells,
 }
 
 bool Cell::FindLoop(const Impl& impl, Position position) {
+  LOG(DEBUG) << "Find loop for " << position.ToString();
   const Position position_const = position;
   std::unordered_set<Cell*> cells;
 
   for (const auto& cell : impl.GetReferencedCells()) {
+    LOG(DEBUG) << "Cell " << cell.ToString();
     if (cell == position) {
       return true;
     }
@@ -89,6 +96,7 @@ bool Cell::FindLoop(const Impl& impl, Position position) {
     Cell* referenced_cell = sheet_.GetCell(cell);
     cells.insert(referenced_cell);
     if (IsLoop(referenced_cell, cells, position_const)) {
+      LOG(DEBUG) << "Loop found";
       return true;
     }
   }
@@ -144,7 +152,9 @@ Cell::FormulaImpl::FormulaImpl(std::string content, SheetInterface& sheet)
     : formula_(ParseFormula(content.substr(1))), sheet_(sheet) {}
 
 Cell::Value Cell::FormulaImpl::GetValue() const {
+  LOG(DEBUG) << "Get value for formula " << formula_->GetExpression();
   if (!db_) {
+    LOG(DEBUG) << "Evaluate formula";
     db_ = formula_->Evaluate(sheet_);
   }
   return std::visit([](auto& helper) { return Value(helper); }, *db_);
