@@ -1,12 +1,11 @@
-# cpp-spreadsheet
-Дипломный проект: Электронная таблица
+# Spreadsheet
 
-## Сборка и запуск
+## Build and launch
 
-Для сборки нашего приложения и создания Docker-образа достаточно будет выполнить следующую команду:
+To build our application and create a Docker image, it will be enough to run the following command:
 
 `docker build -t spreadsheet .`
 
-Для запуска приложения используем команду:
+To launch the application, use the command:
 
 `docker run -it spreadsheet`
